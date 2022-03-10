@@ -15,7 +15,7 @@ use druid::Target;
 use druid::{
     AppLauncher, BoxConstraints, Code, Color, Data, Env, Event, EventCtx, LayoutCtx, Lens,
     LifeCycle, LifeCycleCtx, LocalizedString, PaintCtx, Point, Rect, Selector, Size, UpdateCtx,
-    Widget, WidgetExt, WindowDesc,
+    Widget, WindowDesc,
 };
 
 use std::sync::Arc;

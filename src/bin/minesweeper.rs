@@ -263,13 +263,13 @@ pub fn main() {
         mine_image: Arc::new(
             image::load_from_memory(include_bytes!("../../resources/mine.png"))
                 .unwrap()
-                .to_rgba()
+                .to_rgba8()
                 .into_raw(),
         ),
         flag_image: Arc::new(
             image::load_from_memory(include_bytes!("../../resources/flag.png"))
                 .unwrap()
-                .to_rgba()
+                .to_rgba8()
                 .into_raw(),
         ),
     };
