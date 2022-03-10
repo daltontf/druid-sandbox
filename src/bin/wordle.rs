@@ -2,7 +2,7 @@
 extern crate lazy_static;
 
 use druid::widget::prelude::*;
-use druid::widget::{Button, Flex, Label, Padding, Painter, SizedBox};
+use druid::widget::{Flex, Label, Padding, Painter, SizedBox};
 use druid::{
     AppDelegate, AppLauncher, Color, Data, DelegateCtx, Event, LocalizedString, TextAlignment,
     Widget, WidgetExt, WindowDesc, WindowId,
@@ -31,6 +31,11 @@ const CHAR_NOT_TRIED: KeyState = 0;
 const CHAR_NOT_IN_WORD: KeyState = 1;
 const CHAR_IN_WORD: KeyState = 2;
 const CHAR_CORRECT: KeyState = 3;
+
+const NOT_GUESSED_COLOR:Color = Color::rgb8(32, 32, 32); 
+const NOT_WORD_COLOR:Color = Color::rgb8(64, 64, 64);
+const IN_WORD_COLOR:Color = Color::rgb8(192, 144, 96);
+const CORRECT_LETTER_COLOR:Color = Color::rgb8(0, 144, 96);
 
 lazy_static! {
     static ref LEGAL_GUESSES: HashSet<String> = {
@@ -183,28 +188,22 @@ fn build_guess_grid(_app_state: &AppState) -> Flex<AppState> {
                 let bounds = ctx.size().to_rect();
 
                 let background = match data.guesses[guess][letter] {
-                    GuessResult::NotGuessed => Color::rgb(0.1, 0.1, 0.1),
-                    GuessResult::Entered(_) => Color::rgb(0.0, 0.0, 0.0),
-                    GuessResult::NotInWord(_) => Color::rgb(0.2, 0.2, 0.2),
-                    GuessResult::InWord(_) => Color::rgb(0.8, 0.6, 0.3),
-                    GuessResult::Correct(_) => Color::rgb(0.0, 0.6, 0.3),
+                    GuessResult::NotGuessed => &NOT_GUESSED_COLOR,
+                    GuessResult::Entered(_) => &Color::BLACK,
+                    GuessResult::NotInWord(_) => &NOT_WORD_COLOR,
+                    GuessResult::InWord(_) => &IN_WORD_COLOR,
+                    GuessResult::Correct(_) => &CORRECT_LETTER_COLOR,
                 };
-                ctx.fill(bounds, &background);
+                ctx.fill(bounds, background);
             });
 
-            row.add_child(Padding::new(
-                4.0,
-                SizedBox::new(
+            row.add_child(sized_widget_with_padding(
                     Label::dynamic(move |data: &AppState, _| {
                         guess_letter(data.guesses[guess][letter]).to_string()
                     })
                     .with_text_size(32.0)
                     .with_text_alignment(TextAlignment::Center)
-                    .background(painter),
-                )
-                .width(48.0)
-                .height(48.0),
-            ))
+                    .background(painter), 4.0, 48.0, 48.0))
         }
         result.add_child(row);
     }
@@ -216,25 +215,28 @@ fn key_button(character: char) -> impl Widget<AppState> {
         let bounds = ctx.size().to_rect();
 
         let background = match data.get_key_state(character) {
-            CHAR_NOT_IN_WORD => Color::rgb(0.2, 0.2, 0.2),
-            CHAR_IN_WORD => Color::rgb(0.8, 0.6, 0.3),
-            CHAR_CORRECT => Color::rgb(0.0, 0.6, 0.3),
-            _ => Color::rgb(0.1, 0.1, 0.1),
+            CHAR_NOT_IN_WORD => &NOT_WORD_COLOR,
+            CHAR_IN_WORD => &IN_WORD_COLOR,
+            CHAR_CORRECT => &CORRECT_LETTER_COLOR,
+            _ => &NOT_GUESSED_COLOR,
         };
 
-        ctx.fill(bounds, &background);
+        ctx.fill(bounds, background);
     });
 
-    Padding::new(
-        4.0,
-        SizedBox::new(
+    sized_widget_with_padding(
             Label::new(character.to_string())
                 .with_text_size(24.)
                 .background(painter)
                 .on_click(move |_ctx, data: &mut AppState, _env| data.character_pressed(character)),
-        )
-        .width(32.0)
-        .height(32.0),
+                4.0, 32.0, 32.0)
+}
+
+fn sized_widget_with_padding<T: Data>(widget: impl Widget<T> + 'static, padding: f64, width: f64, height: f64) -> impl Widget<T> {
+    Padding::new(padding,
+        SizedBox::new(widget)
+            .width(width)
+            .height(height)
     )
 }
 
@@ -254,14 +256,21 @@ fn build_keyboard() -> Flex<AppState> {
 
     row = Flex::row();
     row.add_child(
-        Button::new("ENTER").on_click(move |_ctx, data: &mut AppState, _env| data.enter_pressed()),
+        SizedBox::new(Label::new("ENTER")
+            .with_text_size(16.)
+            .background(Color::rgb(0.1, 0.1, 0.1))
+            .on_click(move |_ctx, data: &mut AppState, _env| data.enter_pressed()))
+            .width(64.0).height(32.0)
     );
     for key_char in vec!['Z', 'X', 'C', 'V', 'B', 'N', 'M'] {
         row.add_child(key_button(key_char));
     }
     row.add_child(
-        Button::new("\u{232B}")
-            .on_click(move |_ctx, data: &mut AppState, _env| data.backspace_pressed()),
+        SizedBox::new(Label::new("\u{232B}")
+            .with_text_size(16.)
+            .background(Color::rgb(0.1, 0.1, 0.1))
+            .on_click(move |_ctx, data: &mut AppState, _env| data.backspace_pressed()))
+            .width(64.0).height(32.0)
     );
     result.add_child(row);
 
@@ -311,6 +320,14 @@ pub fn main() {
             Flex::column()
                 .with_flex_spacer(0.1)
                 .with_child(guess_grid)
+                .with_flex_spacer(1.0)
+                .with_child(Label::dynamic(move |data: &AppState, _| {
+                    if data.current_guess > 5 {
+                        data.target.clone()
+                    } else {
+                        String::from("")
+                    }
+                }).with_text_size(36.))
                 .with_flex_spacer(1.0)
                 .with_child(build_keyboard())
         })
