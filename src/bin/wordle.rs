@@ -35,7 +35,16 @@ const CHAR_CORRECT: KeyState = 3;
 const NOT_GUESSED_COLOR:Color = Color::rgb8(32, 32, 32); 
 const NOT_WORD_COLOR:Color = Color::rgb8(64, 64, 64);
 const IN_WORD_COLOR:Color = Color::rgb8(192, 144, 96);
-const CORRECT_LETTER_COLOR:Color = Color::rgb8(0, 144, 96);
+const CORRECT_LETTER_COLOR:Color = Color::rgb8(0, 164, 96);
+
+const SUCCESS_RESPONSES:[&str;6] = [
+    "Luck?!",
+    "Awesome!",
+    "Good",
+    "Average",
+    "Meh",
+    "Whew!"
+ ];
 
 lazy_static! {
     static ref LEGAL_GUESSES: HashSet<String> = {
@@ -72,6 +81,7 @@ struct AppState {
     current_letter: usize,
     target: String,
     guessed_letters: [[KeyState; 13]; 2],
+    solved: bool
 }
 
 impl AppState {
@@ -88,18 +98,19 @@ impl AppState {
             current_letter: 0,
             target: target_vec[random_idx].to_string(),
             guessed_letters: [[CHAR_NOT_TRIED; 13]; 2], // Druid max is 13, have to do silly things
+            solved: false
         }
     }
 
     fn character_pressed(&mut self, key: char) {
-        if self.current_guess < 6 && self.current_letter < 5 {
+        if !self.solved && self.current_guess < 6 && self.current_letter < 5 {
             self.guesses[self.current_guess][self.current_letter] = GuessResult::Entered(key);
             self.current_letter = self.current_letter + 1;
         }
     }
 
     fn backspace_pressed(&mut self) {
-        if self.current_guess < 6 && self.current_letter > 0 {
+        if !self.solved && self.current_guess < 6 && self.current_letter > 0 {
             self.current_letter = self.current_letter - 1;
             self.guesses[self.current_guess][self.current_letter] = GuessResult::NotGuessed;
         }
@@ -152,7 +163,7 @@ impl AppState {
     }
 
     fn enter_pressed(&mut self) {
-        if self.current_letter > 4 {
+        if !self.solved && self.current_letter > 4 {
             let guess_word: String = self.guesses[self.current_guess]
                 .iter()
                 .map(|&g| guess_letter(g))
@@ -164,6 +175,7 @@ impl AppState {
                     self.current_guess = self.current_guess + 1;
                     self.current_letter = 0;
                 }
+                self.solved = guess_word == self.target 
             }
         }
     }
@@ -214,6 +226,8 @@ fn key_button(character: char) -> impl Widget<AppState> {
     let painter = Painter::<AppState>::new(move |ctx, data, _env| {
         let bounds = ctx.size().to_rect();
 
+        let rounded = bounds.to_rounded_rect(4.0);
+
         let background = match data.get_key_state(character) {
             CHAR_NOT_IN_WORD => &NOT_WORD_COLOR,
             CHAR_IN_WORD => &IN_WORD_COLOR,
@@ -221,7 +235,7 @@ fn key_button(character: char) -> impl Widget<AppState> {
             _ => &NOT_GUESSED_COLOR,
         };
 
-        ctx.fill(bounds, background);
+        ctx.fill(rounded, background);
     });
 
     sized_widget_with_padding(
@@ -238,6 +252,13 @@ fn sized_widget_with_padding<T: Data>(widget: impl Widget<T> + 'static, padding:
             .width(width)
             .height(height)
     )
+}
+
+fn generic_painter() -> Painter<AppState> {
+    Painter::<AppState>::new(move |ctx, _data, _env| {
+        let rounded = ctx.size().to_rect().to_rounded_rect(4.0);
+        ctx.fill(rounded, &NOT_GUESSED_COLOR);
+    })
 }
 
 fn build_keyboard() -> Flex<AppState> {
@@ -258,7 +279,7 @@ fn build_keyboard() -> Flex<AppState> {
     row.add_child(
         SizedBox::new(Label::new("ENTER")
             .with_text_size(16.)
-            .background(Color::rgb(0.1, 0.1, 0.1))
+            .background(generic_painter())
             .on_click(move |_ctx, data: &mut AppState, _env| data.enter_pressed()))
             .width(64.0).height(32.0)
     );
@@ -268,7 +289,7 @@ fn build_keyboard() -> Flex<AppState> {
     row.add_child(
         SizedBox::new(Label::new("\u{232B}")
             .with_text_size(16.)
-            .background(Color::rgb(0.1, 0.1, 0.1))
+            .background(generic_painter())
             .on_click(move |_ctx, data: &mut AppState, _env| data.backspace_pressed()))
             .width(64.0).height(32.0)
     );
@@ -322,10 +343,14 @@ pub fn main() {
                 .with_child(guess_grid)
                 .with_flex_spacer(1.0)
                 .with_child(Label::dynamic(move |data: &AppState, _| {
-                    if data.current_guess > 5 {
-                        data.target.clone()
+                    if data.solved {
+                        SUCCESS_RESPONSES[data.current_guess - 1].to_string()
                     } else {
-                        String::from("")
+                        if data.current_guess > 5 {
+                            data.target.clone()
+                        } else {
+                            String::from("")
+                        }
                     }
                 }).with_text_size(36.))
                 .with_flex_spacer(1.0)
