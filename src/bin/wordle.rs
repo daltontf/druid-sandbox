@@ -4,7 +4,7 @@ extern crate lazy_static;
 use druid::widget::prelude::*;
 use druid::widget::{Flex, Label, Padding, Painter, SizedBox};
 use druid::{
-    AppDelegate, AppLauncher, Color, Data, DelegateCtx, Event, LocalizedString, TextAlignment,
+    AppDelegate, AppLauncher, Color, Data, DelegateCtx, Event, LocalizedString, 
     Widget, WidgetExt, WindowDesc, WindowId,
 };
 
@@ -34,7 +34,7 @@ const CHAR_CORRECT: KeyState = 3;
 
 const NOT_GUESSED_COLOR:Color = Color::rgb8(32, 32, 32); 
 const NOT_WORD_COLOR:Color = Color::rgb8(64, 64, 64);
-const IN_WORD_COLOR:Color = Color::rgb8(192, 144, 96);
+const IN_WORD_COLOR:Color = Color::rgb8(192, 172, 64);
 const CORRECT_LETTER_COLOR:Color = Color::rgb8(0, 164, 96);
 
 const SUCCESS_RESPONSES:[&str;6] = [
@@ -213,8 +213,8 @@ fn build_guess_grid(_app_state: &AppState) -> Flex<AppState> {
                     Label::dynamic(move |data: &AppState, _| {
                         guess_letter(data.guesses[guess][letter]).to_string()
                     })
-                    .with_text_size(32.0)
-                    .with_text_alignment(TextAlignment::Center)
+                    .with_text_size(32.0)                    
+                    .center()
                     .background(painter), 4.0, 48.0, 48.0))
         }
         result.add_child(row);
@@ -241,9 +241,10 @@ fn key_button(character: char) -> impl Widget<AppState> {
     sized_widget_with_padding(
             Label::new(character.to_string())
                 .with_text_size(24.)
+                .center()
                 .background(painter)
                 .on_click(move |_ctx, data: &mut AppState, _env| data.character_pressed(character)),
-                4.0, 32.0, 32.0)
+                4.0, 36.0, 36.0)
 }
 
 fn sized_widget_with_padding<T: Data>(widget: impl Widget<T> + 'static, padding: f64, width: f64, height: f64) -> impl Widget<T> {
@@ -277,21 +278,25 @@ fn build_keyboard() -> Flex<AppState> {
 
     row = Flex::row();
     row.add_child(
-        SizedBox::new(Label::new("ENTER")
+        Label::new("ENTER")            
             .with_text_size(16.)
+            .center()
+            .fix_width(72.0)
+            .fix_height(36.0)           
             .background(generic_painter())
-            .on_click(move |_ctx, data: &mut AppState, _env| data.enter_pressed()))
-            .width(64.0).height(32.0)
+            .on_click(move |_ctx, data: &mut AppState, _env| data.enter_pressed())
     );
     for key_char in vec!['Z', 'X', 'C', 'V', 'B', 'N', 'M'] {
         row.add_child(key_button(key_char));
     }
     row.add_child(
-        SizedBox::new(Label::new("\u{232B}")
+        Label::new("\u{232B}")
             .with_text_size(16.)
+            .center()            
+            .fix_width(72.0)
+            .fix_height(36.0)
             .background(generic_painter())
-            .on_click(move |_ctx, data: &mut AppState, _env| data.backspace_pressed()))
-            .width(64.0).height(32.0)
+            .on_click(move |_ctx, data: &mut AppState, _env| data.backspace_pressed())
     );
     result.add_child(row);
 
@@ -356,7 +361,7 @@ pub fn main() {
                 .with_flex_spacer(1.0)
                 .with_child(build_keyboard())
         })
-        .window_size((640., 600.))
+        .window_size((500., 540.))
         .resizable(false)
         .title(LocalizedString::new("app-title").with_placeholder("Wordle")),
     )
