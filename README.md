@@ -16,4 +16,4 @@ Minor projects I've been doing to evaluate/learn the Druid UI toolkit for Rust (
 ![](wordle.png)
 
 
-Each can execute via 'cargo run --bin [sub-procect name]
+Each can executed via 'cargo run --bin [sub-project name]'

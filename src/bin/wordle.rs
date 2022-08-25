@@ -35,7 +35,7 @@ const CHAR_CORRECT: KeyState = 3;
 const NOT_GUESSED_COLOR:Color = Color::rgb8(32, 32, 32); 
 const NOT_WORD_COLOR:Color = Color::rgb8(64, 64, 64);
 const IN_WORD_COLOR:Color = Color::rgb8(192, 172, 64);
-const CORRECT_LETTER_COLOR:Color = Color::rgb8(0, 164, 96);
+const CORRECT_LETTER_COLOR:Color = Color::rgb8(0, 164, 64);
 
 const SUCCESS_RESPONSES:[&str;6] = [
     "Luck?!",
@@ -81,6 +81,7 @@ struct AppState {
     current_letter: usize,
     target: String,
     guessed_letters: [[KeyState; 13]; 2],
+    last_word_valid: bool,
     solved: bool
 }
 
@@ -98,6 +99,7 @@ impl AppState {
             current_letter: 0,
             target: target_vec[random_idx].to_string(),
             guessed_letters: [[CHAR_NOT_TRIED; 13]; 2], // Druid max is 13, have to do silly things
+            last_word_valid: true,
             solved: false
         }
     }
@@ -113,6 +115,7 @@ impl AppState {
         if !self.solved && self.current_guess < 6 && self.current_letter > 0 {
             self.current_letter = self.current_letter - 1;
             self.guesses[self.current_guess][self.current_letter] = GuessResult::NotGuessed;
+            self.last_word_valid = true;
         }
     }
 
@@ -160,6 +163,7 @@ impl AppState {
                 }
             }
         }
+        self.last_word_valid = true;
     }
 
     fn enter_pressed(&mut self) {
@@ -176,6 +180,8 @@ impl AppState {
                     self.current_letter = 0;
                 }
                 self.solved = guess_word == self.target 
+            } else {
+                self.last_word_valid = false;
             }
         }
     }
@@ -351,10 +357,14 @@ pub fn main() {
                     if data.solved {
                         SUCCESS_RESPONSES[data.current_guess - 1].to_string()
                     } else {
-                        if data.current_guess > 5 {
-                            data.target.clone()
+                        if !data.last_word_valid {
+                            String::from("Not in word list")
                         } else {
-                            String::from("")
+                            if data.current_guess > 5 {
+                            data.target.clone()
+                            } else {
+                                String::from("")
+                            }
                         }
                     }
                 }).with_text_size(36.))
